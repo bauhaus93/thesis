@@ -8,12 +8,24 @@
 % - Brainstorming was done
 % - Roter Faden was done (Strukturierung und Elimination of Abzweigung)
 
+
+
+\iffalse
+Brainstorm stuff:
+- Why TOML?
+	* Used by many projects (https://github.com/toml-lang/toml/wiki#projects-using-toml)
+		-> eg rusts cargo, pip
+		-> possiblities for usage of elektra	
+	* No TOML plugin in existing
+\fi
+
 \documentclass[12pt]{report}
 \usepackage[utf8]{inpute nc}
 \usepackage[acronym,nomain]{glossaries}
+\usepackage{cite}
 
 
-\title{TOML parsing for  }
+\title{Viability of TOML parsing for configuration}
 \author{Jakob Fischer}
 
 
@@ -30,8 +42,8 @@ TODO: Abstract
 \end{abstract}
 
 \chapter*{Introduction}
-ttt
-\acrshort{LL}
+
+\cite{tomlwiki}
 
 \chapter*{Approach}
 
@@ -47,6 +59,7 @@ ttt
 
 \printglossary[type=\acronymtype]
 
-\input{bib.tex}
+\bibliography{references}{}
+\bibliographystyle{plain}
 
 \end{document}

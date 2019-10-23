@@ -1,21 +1,23 @@
 NAME = thesis
 
-all: clean_pdf $(NAME) glossary
+all: $(NAME)
 
 $(NAME): $(NAME).pdf
-
 glossary: $(NAME).acr $(NAME).acn
+bibliography: $(NAME).bbl $(NAME).blg
 
-${NAME}.pdf $(NAME).aux: ${NAME}.tex bib.tex
+${NAME}.pdf $(NAME).aux: ${NAME}.tex
 	pdflatex -halt-on-error -file-line-error ${NAME}.tex
 
 $(NAME).acr $(NAME).acn: $(NAME).aux
 	makeglossaries $(NAME)
 
+$(NAME).bbl $(NAME).blg: $(NAME).aux
+	bibtex $(NAME)
 
 clean_pdf:
 	rm -f $(NAME).pdf
 
 .PHONY: clean
 clean:
-	rm -f info.txt *.pdf *.aux *.log *.glo *.acr *.acn *.alg *.ist
+	rm -f info.txt *.pdf *.aux *.log *.glo *.acr *.acn *.alg *.ist *.bbl *.blg
