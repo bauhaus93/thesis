@@ -3,3 +3,7 @@
 *.log
 *.vim
 *.pdf
+*.acr
+*.acn
+*.ist
+*.alg

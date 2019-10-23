@@ -9,10 +9,17 @@
 % - Roter Faden was done (Strukturierung und Elimination of Abzweigung)
 
 \documentclass[12pt]{report}
-\usepackage[utf8]{inputenc}
+\usepackage[utf8]{inpute nc}
+\usepackage[acronym,nomain]{glossaries}
 
-\title{TODO: Title}
+
+\title{TOML parsing for  }
 \author{Jakob Fischer}
+
+
+\makeglossaries
+\newacronym{LL}{LL}{Left-to-Right, Leftmost derivation}
+
 
 \begin{document}
 
@@ -23,6 +30,8 @@ TODO: Abstract
 \end{abstract}
 
 \chapter*{Introduction}
+ttt
+\acrshort{LL}
 
 \chapter*{Approach}
 
@@ -34,7 +43,9 @@ TODO: Abstract
 
 \chapter*{Conclusion}
 
-\chapter*{References}
+\chapter*{Glossary}
+
+\printglossary[type=\acronymtype]
 
 \input{bib.tex}
 
