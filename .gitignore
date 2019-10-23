@@ -2,8 +2,10 @@
 *.txt
 *.log
 *.vim
-*.pdf
 *.acr
 *.acn
 *.ist
 *.alg
+*.bbl
+*.blg
+*.pdf

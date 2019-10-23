@@ -20,4 +20,4 @@ clean_pdf:
 
 .PHONY: clean
 clean:
-	rm -f info.txt *.pdf *.aux *.log *.glo *.acr *.acn *.alg *.ist *.bbl *.blg
+	rm -f info.txt *.aux *.log *.glo *.acr *.acn *.alg *.ist *.bbl *.blg
