@@ -1,0 +1,59 @@
+\documentclass[12pt]{article}
+
+\usepackage[cm]{fullpage}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{xspace}
+\usepackage{fancyhdr}
+\usepackage{titling}
+\usepackage{textcomp}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{enumitem}
+
+
+\begin{document}
+\thispagestyle{empty}
+
+
+\section{Exposé}
+
+\subsection{Title}
+TODO
+
+\subsection{Problem}
+
+The configuration management library Elektra supports the mounting of different file types, like ini, json or xml, in order to handle configuration. With Elektra, it's possible to read/write these configuration files within one interface, making developers or administrators more independent of the used filetypes. However, it isn't possible to mount TOML configuration files in Elektra yet.
+
+\subsection{Goal/Question}
+The goal of this thesis is to implement a storage plugin to enable the usage of TOML files with Elektra.
+To support as many platforms as possible, the plugin will be written purely in C. Parsing will be done with flex and bison.
+
+Afterwards, a case study will be conducted on the OSS project lcdproc, which is currently undergoing electrification.
+In the case study, the newly implemented TOML plugin will be used in lcdproc for handling of configuration.
+It will be checked, if the plugin integrates well within the application and can load the needed configuration information.
+Additionally, it will be measured if the plugin imposes any unreasonable overhead on loading times.
+For this, it will be compared against other existing storage plugins.
+
+\subsection{Method}
+
+To answer the research question, benchmarks will be used.
+
+\subsection{Timeplan/Milestones}
+\begin{enumerate}
+\item 12/10/2019: Storage Plugin finished, Thesis Introduction, Related Work
+\item 22/10/2019: Benchmarking finished, Thesis Methodology, Part of Evaluation
+\item 31/10/2019: Thesis Evaluation, Conclusion 
+\end{enumerate}
+
+\subsection{Related Work/References}
+\begin{itemize}
+\item lcdproc: http://lcdproc.omnipotent.net/
+\item TOML: https://github.com/toml-lang/toml
+\item TOML ABNF: https://github.com/toml-lang/toml/blob/master/toml.abnf 
+\end{itemize}
+
+\end{document}
+
