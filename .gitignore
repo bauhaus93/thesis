@@ -8,4 +8,5 @@
 *.alg
 *.bbl
 *.blg
+*.out
 *.pdf

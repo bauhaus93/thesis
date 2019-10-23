@@ -11,27 +11,38 @@
 
 
 \iffalse
-Brainstorm stuff:
+NOTES:
 - Why TOML?
-	* Used by many projects (https://github.com/toml-lang/toml/wiki#projects-using-toml)
-		-> eg rusts cargo, pip
-		-> possiblities for usage of elektra	
-	* No TOML plugin in existing
+	* Used by many projects
+		-> eg cargo, pip -> where exactly
+		-> possiblities for usage of elektra
+	* No TOML plugin existing (only via augeas plugin)
+- What was done?
+	* TOML storage plugin for elektra
+	* For now limited to reading toml files
+	* uses c, flex, bison
+- Case Study
+	* lcdproc
+
+	
 \fi
 
 \documentclass[12pt]{report}
 \usepackage[utf8]{inpute nc}
 \usepackage[acronym,nomain]{glossaries}
 \usepackage{cite}
-
+\usepackage{hyperref}
 
 \title{Viability of TOML parsing for configuration}
 \author{Jakob Fischer}
 
 
 \makeglossaries
-\newacronym{LL}{LL}{Left-to-Right, Leftmost derivation}
 
+\newacronym{LL}{LL}{Left-to-Right, Leftmost derivation}
+\newacronym{TOML}{TOML}{Tom's Obvious, Minimal Language}
+
+\newcommand{\onlinesrc}[1]{Accessed #1}
 
 \begin{document}
 
@@ -41,11 +52,35 @@ Brainstorm stuff:
 TODO: Abstract
 \end{abstract}
 
-\chapter*{Introduction}
+\chapter{Introduction}
 
-\cite{tomlwiki}
+\section{Research Question}
 
-\chapter*{Approach}
+\section{\acrshort{TOML} (\acrlong{TOML})}
+\acrshort{TOML} is a configuration file format developed since February, 2013 \cite{tomlcontrib}.
+It claims to be a format, that is easily to read and parse \cite{tomlreadme} and finds use in many different projects \cite{tomlwiki}.
+For instance, it is used with Rusts project manager \textbf{cargo} \cite{cargogit}, as well as Pythons package installer \textbf{pip} \cite{piprefguide}.
+
+\section{Elektra}
+Elektra is a configuration framework for accessing configuration settings in a global key database \cite{elektramain}.
+An application using Elektra can read and write key/value pairs via simple calls to the Elektra library, making the implementation of an own configuration system obsolete.
+Furthermore, elektrified applications can access configuration settings of other elektrified applications, to provide better application interoperability.
+
+Although Elektra is mainly written in C, there are bindings for other languages like java, python or ruby \cite{elektrabindings}.
+
+Elektra can also read from and write to different configuration file formats, like JSON, XML or ini \cite{elektrastorage}.
+If the need arises, applications can easily switch to a different file format, because configuration access is done with the Elektra API.
+Developers or Administrators no longer need to commit to one file format for configuration.
+
+Support for different languages and file formats is implemented by the use of plugins, which can be enabled if needed.
+With this modularity, Elektra can provide a wide range of functionality, while simultaneously avoiding being a bloated library.
+Developers can compile Elektra with the exact set of needed functionality. If they don't need bindings for java, they can just disable this feature.
+
+\section{lcdproc}
+
+
+
+\chapter*{Methodology}
 
 \chapter*{Implementation}
 
