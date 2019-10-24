@@ -10,8 +10,8 @@ bibliography: $(NAME).bbl $(NAME).blg
 
 expose: expose.pdf
 
-${NAME}.pdf $(NAME).aux: ${NAME}.tex
-	$(LATEX) $(LATEX_ARGS) ${NAME}.tex
+${NAME}.pdf $(NAME).aux: $(NAME).tex
+	$(LATEX) $(LATEX_ARGS) $(NAME).tex
 
 expose.pdf: expose.tex
 	$(LATEX) $(LATEX_ARGS) expose.tex
