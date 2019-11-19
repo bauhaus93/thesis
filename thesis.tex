@@ -40,9 +40,12 @@ NOTES:
 \makeglossaries
 
 \newacronym{LL}{LL}{Left-to-Right, Leftmost derivation}
+\newacronym{LR}{LR}{Left-to-Right, Rightmost derivation}
 \newacronym{TOML}{TOML}{Tom's Obvious, Minimal Language}
+\newacronym{FLEX}{FLEX}{Fast Lexical Analyzer}
 
 \newcommand{\onlinesrc}[1]{Accessed #1}
+\newcommand{\gitsrc}[1]{Commit \##1}
 
 \begin{document}
 
@@ -54,7 +57,6 @@ TODO: Abstract
 
 \chapter{Introduction}
 
-\section{Research Question}
 
 \section{\acrshort{TOML} (\acrlong{TOML})}
 \acrshort{TOML} is a configuration file format developed since February, 2013 \cite{tomlcontrib}.
@@ -63,7 +65,7 @@ For instance, it is used with Rusts project manager \textbf{cargo} \cite{cargogi
 
 \section{Elektra}
 Elektra is a configuration framework for accessing configuration settings in a global key database \cite{elektramain}.
-An application using Elektra can read and write key/value pairs via simple calls to the Elektra library, making the implementation of an own configuration system obsolete.
+An application using Elektra can read and write key/value pairs via calls to the Elektra library, making the implementation of an own configuration system obsolete.
 Furthermore, elektrified applications can access configuration settings of other elektrified applications, to provide better application interoperability.
 
 Although Elektra is mainly written in C, there are bindings for other languages like java, python or ruby \cite{elektrabindings}.
@@ -77,12 +79,53 @@ With this modularity, Elektra can provide a wide range of functionality, while s
 Developers can compile Elektra with the exact set of needed functionality. If they don't need bindings for java, they can just disable this feature.
 
 \section{lcdproc}
+LCDproc is an open source project for displaying stats like CPU/RAM usage of a system on different kinds of LCD devices \cite{lcdprocmain}\cite{lcdprocgit}.
+It has a client/server architecture, where the server provides it's system stats to multiple clients, which then display it on a LCD device.
 
+\section{Research Question}
+We will test the newly written toml plugin on lcdproc, which currently stores it's configuration in an ini like format \cite{lcdprocconf}.
+It uses a custom parser to read the configuration \cite{lcdprocconfigreader}.
 
+There are two important questions we want to answer for the toml plugin:
+\begin{itemize}
+	\item[RQ1] Does the plugin correctly load all needed lcdproc configuration settings?
+	\item[RQ2] Does the plugin put an unreasonable overhead on lcdproc loading times?
+\end{itemize}
 
 \chapter*{Methodology}
 
 \chapter*{Implementation}
+
+The plugin is implemented in C, using the C99 standard, to support as many platforms as possible.
+
+\section{Plugin}
+The toml parser is realized as an elektra storage plugin. The plugin exposes two functions, \textbf{elektraTomlGet} for reading, and \textbf{elektraTomlSet} for writing.
+
+\section{Tools}
+It uses two external tools for generating a parser for the toml file format: \acrshort{FLEX} \cite{flexgit} for lexical analysis and bison \cite{bisonmain} for parsing.
+The key generation is done in the bison parser with the use of actions.
+
+In order to generate the appropriate Elektra keys, the parser has access to a driver which contains all needed Elektra logic.
+We oriented on the existing Elektra plugin \textbf{yambi}\cite{elektrayambi} in the key generation with the driver.
+The driver contains functions of the style \textbf{driverEnterKey}/\textbf{driverExitTable} to make it more clear, at what point of parsing a certain function shall be invoked.
+
+\section{Grammar}
+TODO: Better structure
+Since bison generates \acrshort{LR} (\acrlong{LR}) parsers, rules need to be left-recursive.
+TODO: Add source, explain it.
+
+The parser also makes use of so-called midrule-actions, which are parser actions that are not at the end of a grammar rule.
+This can affect the resulting grammar, since after executing a mid-rule action, the parser has to commit to the chosen parse branch \cite{bisonmidruleconflicts}.
+
+As a result, two important points had to be considered when creating the toml grammar:
+\begin{itemize}
+	\item Create only left-recursive rules.
+	\item Avoid midrule-actions when possible.
+\end{itemize}
+
+The created parser only contains left-recursive rules.
+We tried to minimize the usage of midrule-actions, to make the grammar as independent of the actions as possible.
+However, especially for possibly nested structures, like arrays or inline tables, they were unavoidable.
 
 \chapter*{Evaluation}
 
