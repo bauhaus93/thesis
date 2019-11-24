@@ -8,25 +8,6 @@
 % - Brainstorming was done
 % - Roter Faden was done (Strukturierung und Elimination of Abzweigung)
 
-
-
-\iffalse
-NOTES:
-- Why TOML?
-	* Used by many projects
-		-> eg cargo, pip -> where exactly
-		-> possiblities for usage of elektra
-	* No TOML plugin existing (only via augeas plugin)
-- What was done?
-	* TOML storage plugin for elektra
-	* For now limited to reading toml files
-	* uses c, flex, bison
-- Case Study
-	* lcdproc
-
-	
-\fi
-
 \documentclass[12pt]{report}
 \usepackage[utf8]{inpute nc}
 \usepackage[acronym,nomain]{glossaries}
@@ -122,18 +103,24 @@ This can affect the resulting grammar, since after executing a mid-rule action, 
 We tried to minimize the usage of midrule-actions, to make the grammar as independent of actions as possible.
 However, especially for possibly nested structures, like arrays or inline tables, they were unavoidable.
 
-
-
 \chapter{Evaluation}
 
 \section{Setup}
-\begin{sloppypar}
-For Elektra, we will use the elektra fork from \cite{bauhausforkelektra}, branch \textbf{'plugin\_toml'}, commit \#efdec83f9645d94081c3d0abcd43554fa5f63f88.
-For LCDproc, we use the fork from \cite{bauhausforklcdproc}, branch \textbf{'toml\_test'}, commit \#70bf70135190c270c6a75e0b975f591df323bb65.
-\end{sloppypar}
-We clone both of this repositories in a single directory, our 'working directory'.
+We clone both of the following repositories in a single directory, our 'working directory'.
+\begin{tcolorbox}
+\begin{verbatim}
+Elektra:
+repository: github.com/bauhaus93/libelektra.git
+branch: 'plugin_toml'
+commit: #e75d60f8699d8ea80f0f099364b3b8f03ec4413f
+LCDproc:
+repository: github.com/bauhaus93/libelektra.git
+branch: 'toml_test'
+commit: #70bf70135190c270c6a75e0b975f591df323bb65
+\end{verbatim}
+\end{tcolorbox}
 
-After cloning and checking out the two repositories, we build a docker image with the help of a script that comes with the repository:
+After cloning and checking out the two repositories, we build a docker image with the help of a script that comes with the elektra repository:
 \begin{tcolorbox}
 \begin{verbatim}
 cd libelektra
@@ -181,72 +168,33 @@ docker run -it --rm \
 \end{verbatim}
 \end{tcolorbox}
 
-Within that container, we will now install Elektra and LCDproc:
+From our working directory within the container, Elektra and LCDdproc get installed with another script:
 \begin{tcolorbox}
 \small
 \begin{verbatim}
-# Install Elektra
-mkdir -p build
-cd build
-cmake \
-    -DPLUGINS='MAINTAINED;toml' \
-    ../libelektra
-make
-sudo make install
-# Install LCDproc
-cd ../lcdproc
-sh ./autogen.sh
-./configure
-make
-sudo make install
-sudo ldconfig
-./post-install.sh
-kdb set '/sw/lcdproc/lcdd/#0/current/server/drivers/#0' \
-    '@/curses/#0'
+./lcdproc/toml_setup_install.sh
 \end{verbatim}
 \end{tcolorbox}
+
 With Elektra and LCDproc successfuly installed, we now have all set up for evaluation.
 All evaluation is done within the container environment which we just set up and where we installed elektra and lcdproc.
 
-\section{Evaluation}
-When we go back into our working directory and change into the '.config' directory, we now see a LCDd.toml file, containing only two lines of code:
-\begin{tcolorbox}
-\begin{verbatim}
-server.driverpath = "/usr/local/lib/lcdproc/"
-server.drivers = ["@/curses/#0"]
-\end{verbatim}
-
-\end{tcolorbox}
-The first line sets our driver path and is generated automatically.
-
-The second line declares our used drivers. This key was set by us in the last part of the installation, when we executed \texttt{kdb set}.
-This line shows that the \acrshort{toml} plugin correctly detected, that the key we created is an array.
-We indicated this, by ending the name of the key with '\#0', which is the index of our entry.
-\\
-With this minimal manual configuration, it is already possible to execute the LCDd-daemon and a lcdproc client.
-At this point, the \acrshort{toml} plugin does only parse the two lines of configuration, the missing values are loaded from the defaults defined in the LCDd specification.
-\\\\
-Since the default configuration file is very minimal, we created a LCDd \acrshort{toml} file based on the old default configuration file of LCDd \cite{lcdprocconf}.
+Since the default configuration LCDd file is very minimal, and most of the configuration is loaded by the specification, we created a LCDd \acrshort{toml} toml file for evaluation purposes.
+It is based on the old default configuration file of LCDd \cite{lcdprocconf}.
 We converted this old configuration from it's ini like format into \acrshort{toml}.
 We also removed all driver configuration settings, which are not referenced in the specification.
 To show the full capability of the parser, the syntax of some lines was changed into a semantically equivalent format.
 The resulting \acrshort{toml} file has over 600 lines, many of them comments.
+It is copied to our configuration directory in \texttt{.config/} by the installation script.
 
-During the conversion, it was very helpful, that the \acrshort{toml} plugin prints the linenumber of invalid \acrshort{toml} lines.
+TODO: print differences with diff? ignore whitespace and case.
 
-As an example, when we missed to put a value string into quotation marks and tried to start LCDd, we got the following error message:
-\begin{tcolorbox}
-\small
-\begin{verbatim}
-An error occurred while initializing elektra:
-Validation Semantic: Line ~1045:
-Malformed input: Found bare string on rhs, but is not allowed
-\end{verbatim}
-\end{tcolorbox}
-
-To use this configuration file, we copy the \texttt{LCDd.toml} file from the lcdproc directory into the \texttt{.config} directory.
 The LCDd daemon also starts without errors with this new configuration.
 We can verify, that lcdproc used the curses driver options by checking the color the stats panel, which changed from red (which is the default value) to yellow, as written in our file.
+
+\section{Benchmarks}
+
+
 \chapter{Related Work}
 
 \chapter{Conclusion}
