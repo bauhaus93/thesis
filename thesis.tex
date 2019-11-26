@@ -72,11 +72,12 @@ LCDproc is an open source project for displaying stats like CPU/RAM usage of a s
 It has a client/server architecture, where the clients provide their system stats to the server, which can display them on a \acrshort{lcd} device.
 
 \section{Research Question}
-We will test the newly written toml plugin on ElektraInitiative's fork of LCDproc, where LCDproc is currently in the process of using Elektra for it's handling of configuration.
-The toml plugin will be used as the storage plugin for the LCDproc configuration.
-We will create a \acrshort{toml} configuration file based LCDproc's main configuration file for evaluation.
+As part of this thesis, we wrote an Elektra storage plugin for reading and writing \acrshort{toml} files.
+We will test this newly written \acrshort{toml} plugin on ElektraInitiative's fork of LCDproc, where LCDproc is currently in the process of using Elektra for it's handling of configuration.
+The \acrshort{toml} plugin will be used as the storage plugin for the LCDproc configuration.
+For evaluation, \acrshort{toml} configuration files for each tested part of LCDproc were created.
 
-There are three questions we want to answer for the toml plugin:
+There are three questions we want to answer for the \acrshort{toml} plugin:
 \begin{itemize}
 	\item[\textbf{RQ1}] Does the plugin correctly read the LCDproc configuration?
 	\item[\textbf{RQ2}] Does the plugin correctly write the LCDproc configuration without any loss of information?
@@ -88,10 +89,10 @@ Ad RQ2 we also have to check, if comments and newlines - which don't affect the 
 
 \chapter{Implementation}
 
-The plugin is implemented in C, using the C99 standard. It requires \acrshort{posix} for it's capabilities to check regular expressions.
+The plugin is implemented in C, using the C99 standard. It requires \acrshort{posix} for some checks using regular expressions.
 
 \section{Plugin}
-The toml parser is realized as an Elektra storage plugin. The plugin exposes two functions, \textbf{ElektraTomlGet} for reading, and \textbf{ElektraTomlSet} for writing, as expected of a storage plugin.
+The toml parser is realized as an Elektra storage plugin. The plugin exposes two functions, \textbf{ElektraTomlGet} for reading, and \textbf{ElektraTomlSet} for writing, as expected of a Elektra storage plugin.
 
 \section{Tools}
 It uses two external tools for generating a parser for the toml file format: \textbf{\acrshort{flex}} \cite{flexgit} for lexical analysis and \textbf{bison} \cite{bisonmain} for parsing.
@@ -99,13 +100,13 @@ The key generation is done in the bison parser with the use of actions.
 
 In order to generate the appropriate Elektra keys, the parser has access to a driver which contains all needed Elektra logic.
 We oriented on the existing Elektra plugin \textbf{yambi}\cite{Elektrayambi} in key generation via driver.
-The driver contains functions of the style \textbf{driverEnterKey}/\textbf{driverExitTable}, to make it more clear at what point of parsing a certain function shall be invoked.
+The driver contains functions of the style \texttt{driverEnterKey}/\texttt{driverExitTable}, to make it more clear at what point of parsing a certain function shall be invoked.
 
 \section{Grammar}
 Since bison generates \acrshort{lr} (\acrlong{lr}) parsers, grammar rules should be be left-recursive.
 Otherwise, we could run out of stack memory, if recursing too deep with a right-recursive rule.
 The created parser only contains left-recursive rules.
-TODO: Maybe explain better/examples/sources
+TODO: Maybe explain why/examples/sources
 
 The parser makes use of so-called midrule-actions, which are parser actions that are not at the end of a grammar rule.
 This can affect the resulting grammar, since after executing a mid-rule action, the parser has to commit to the chosen parse branch \cite{bisonmidruleconflicts}.
@@ -196,7 +197,7 @@ We converted this old configuration from it's ini like format into \acrshort{tom
 All driver configuration settings, which are not referenced in the specification \cite{bauhaus93forklcdprocslcddspec}, were removed from it.
 
 The resulting \acrshort{toml} file has 606 lines including 369 lines of comments and 143 empty lines.
-It contains one \acrshort{toml} table and nested array.
+It contains one \acrshort{toml} table and a nested array.
 It contains multiple \acrshort{toml} table arrays - one for each driver.
 
 We force a full read/write roundtrip of the configuration file, by setting the currently used driver. This driver is already the active driver in the file, but we just set it again for the roundtrip.
@@ -287,8 +288,8 @@ Files ./lcdproc/lcdexec.toml and .config/lcdexec.toml are identical
 }
 We see there are no differences between the original and the roundtripped configuration file.
 \\\\
-In a \acrshort{tmux} (\acrlong{tmux}) session, the LCDd server and lcdexec client get executed simultaneously.
-There, we navigate into our configured lcdexec menu and execute the first option to execute \texttt{echo a}.
+In a \acrshort{tmux} (\acrlong{tmux}) session, LCDd and lcdexec get executed simultaneously.
+In LCDd, we navigate into our configured lcdexec menu and execute the first option to execute \texttt{echo a}.
 \FloatBarrier
 \begin{figure}[h!]
 	\centering
@@ -332,6 +333,12 @@ When we start LCDd and lcdexec in a \acrshort{tmux} session, we see that lcdexec
 
 \section{Benchmarks}
 
+\section{Discussion (or place it into Conclusion?)}
+We could observe, that in all four programs of LCDproc, we would get identical files after read/writing them, when ignoring whitespace.
+This also means, that no comments got lost or misordered during roundtripping a file.
+We tested not only basic key/value assignments, but also \acrshort{toml} features like tables and table arrays, and even nested arrays, which all could be restored correctly.
+Only during lcdexec evaluation we got a warning for a missing menu id, but since our configured command got executed anyway, we assumed success.
+There is problably an oversight on our side, and we didn't create a file conforming to the specification perfectly. (TODO: Can I write that?)
 
 \chapter{Related Work}
 
