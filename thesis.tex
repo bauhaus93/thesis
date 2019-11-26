@@ -31,6 +31,7 @@
 \newacronym{flex}{Flex}{Fast Lexical Analyzer}
 \newacronym{posix}{POSIX}{Portable Operating System Interface}
 \newacronym{tmux}{tmux}{Terminal Multiplexer}
+\newacronym{lcd}{LCD}{Liquid Crystal Display}
 
 \newcommand{\onlinesrc}[1]{Accessed #1}
 \newcommand{\gitsrc}[1]{Commit \##1}
@@ -49,7 +50,7 @@ TODO: Abstract
 \section{\acrshort{toml}}
 \acrlong{toml} (\acrshort{toml}) is a configuration file format developed since February, 2013 \cite{tomlcontrib}.
 It claims to be a format, that is easily to read and parse \cite{tomlreadme} and finds use in many different projects \cite{tomlwiki}.
-For instance, it is used with Rust's project manager \textbf{cargo} \cite{cargogit}, as well as Python's package installer \textbf{pip} \cite{piprefguide}.
+For instance, it is used with Rust's project manager \texttt{cargo} \cite{cargogit}, as well as Python's package installer \texttt{pip} \cite{piprefguide}.
 
 \section{Elektra}
 Elektra is a configuration framework for accessing configuration settings in a global key database \cite{Elektramain}.
@@ -67,8 +68,8 @@ With this modularity, Elektra can provide a wide range of functionality, while s
 Developers can compile Elektra with the exact set of needed functionality. If they don't need bindings for java, they can just disable this feature.
 
 \section{LCDproc}
-LCDproc is an open source project for displaying stats like CPU/RAM usage of a system on different kinds of LCD devices \cite{LCDprocmain}\cite{LCDprocgit}.
-It has a client/server architecture, where the clients provide their system stats to the server, which can display them on a LCD device.
+LCDproc is an open source project for displaying stats like CPU/RAM usage of a system on different kinds of \acrshort{lcd} (\acrlong{lcd}) devices \cite{LCDprocmain}\cite{LCDprocgit}.
+It has a client/server architecture, where the clients provide their system stats to the server, which can display them on a \acrshort{lcd} device.
 
 \section{Research Question}
 We will test the newly written toml plugin on ElektraInitiative's fork of LCDproc, where LCDproc is currently in the process of using Elektra for it's handling of configuration.
@@ -81,7 +82,7 @@ There are three questions we want to answer for the toml plugin:
 	\item[\textbf{RQ2}] Does the plugin correctly write the LCDproc configuration without any loss of information?
 	\item[\textbf{RQ3}] Does the plugin put an unreasonable overhead on LCDproc loading times?
 \end{itemize}
-Ad RQ1 we must ensure, that were are really reading the configuration from our supplied file, and not the default values supplied by the Elektra specification.
+Ad RQ1 we must ensure, that were are really reading the configuration from our supplied file, and not the default values supplied by the Elektra specification, which each application of LCDproc has.
 
 Ad RQ2 we also have to check, if comments and newlines - which don't affect the LCDproc execution practically, but are only for the user to read - are preserved.
 
@@ -166,42 +167,40 @@ WORKDIR /home/jenkins
 \end{verbatim}
 \end{tcolorbox}
 
-From our working directory within the container, Elektra and LCDdproc get installed with another script:
+Finally, a setup script get invoked. It installs Elektra and LCDdproc, and then copies LCDproc \acrshort{toml} files to the \texttt{./config} directory.
 \begin{tcolorbox}
 \small
 \begin{verbatim}
 ./lcdproc/toml_setup_install.sh
 \end{verbatim}
 \end{tcolorbox}
+This script also invokes the \texttt{post-install.sh} script, which will mount the configuration scripts at the point where expected by LCDproc.
 
+\section{Methodology}
+In this evaluation, we will check four parts of LCDproc: The server daemon \texttt{LCDd} and three clients, namely \texttt{lcdproc}, \texttt{lcdexec}, \texttt{lcdvc}.
+To check, if the \acrshort{toml} plugin correctly reads/writes configuration, we will force a roundtrip of the file by changing a value within that file with the help of the Elektra command \texttt{kdb set}.
+When we call \texttt{kdb set}, the configuration first gets read from the file, the value to set is updated, and then the keys are written back into the file.
+After we roundtripped a file, we compare it with it's original file by the help of the \texttt{diff} command.
+The \texttt{diff} command is always invoked with the \texttt{-w} switch, so that whitespace differences ignored.
+The \acrshort{toml} plugin currently preserves whitespace only before comments (tabs get converted into four spaces).
+
+The \acrshort{toml} files copied during installation either differ from the default configuration loaded by the specification, or we will alter the keys of the file by a call of \texttt{kdb set} before we execute the program.
+During execution, we check if the program starts without any errors concerning the reading of the \acrshort{toml} file.
+We also check, if we can observe the expected difference from the default configuration, to ensure that we really are using the values from our configuration file.
+
+\section{LCDd}
+The LCDd server displays the stats sent to it be the client applications. Normally we would display that stats on a \acrshort{lcd} device, but for our purposes, we configured it to use curses instead.
 Since the default configuration LCDd file is very minimal, and most of the configuration is loaded by the specification, we created a LCDd \acrshort{toml} file for evaluation purposes.
 It is based on the old default configuration file of LCDd \cite{LCDprocconf}.
 We converted this old configuration from it's ini like format into \acrshort{toml}.
 All driver configuration settings, which are not referenced in the specification \cite{bauhaus93forklcdprocslcddspec}, were removed from it.
-To show the full capability of the parser, the syntax of the following lines was changed into a semantically equivalent format:
-\begin{verbatim}
-[menu]
-menukey = "Escape"
-enterkey = "Enter"
-upkey = "Up"
-downkey = "Down"
-\end{verbatim}
-was changed into an inline table:
-\begin{verbatim}
-menu = { menukey = "Escape", enterkey = "Enter", \
-		 upkey = "Up", downkey = "Down" }
-\end{verbatim}
 
 The resulting \acrshort{toml} file has 606 lines including 369 lines of comments and 143 empty lines.
-It contains one \acrshort{toml} table, nested array and inline table.
+It contains one \acrshort{toml} table and nested array.
 It contains multiple \acrshort{toml} table arrays - one for each driver.
 
-This file is copied to our configuration directory in \texttt{.config/} by our installation script.
-It is also mounted as configuration file for LCDd by the post-install.sh script, used in the installation script.
-
-We force a full read/write roundtrip of the configuration file, by setting the currently used driver. This driver is already the active driver in the file, but we set it again.
+We force a full read/write roundtrip of the configuration file, by setting the currently used driver. This driver is already the active driver in the file, but we just set it again for the roundtrip.
 Afterwards, we check if there are any differences between the original file and the newly written file.
-The executed diff command ignores any differences in whitespace, since whitespace are yet only preserved before comments by the plugin (tabs are normalized to 4 spaces).
 {\small
 \begin{verbatim}
 kdb set '/sw/lcdproc/lcdd/#0/current/server/drivers/#0' '@/curses/#0'
@@ -209,10 +208,8 @@ diff -ws ./lcdproc/LCDd.toml .config/LCDd.toml
 Files ./lcdproc/LCDd.toml and .config/LCDd.toml are identical
 \end{verbatim}
 }
-After one roundtrip, the resulting LCDd.toml is identical to the original file under disregard of whitespace.
+After the roundtrip, the resulting LCDd.toml is identical to the original file under disregard of whitespace.
 \\\\
-
-\section{LCDd}
 We start and stop the LCDd daemon once, change some parameters of the curses driver, and start the daemon again.
 {\small
 \begin{verbatim}
@@ -244,8 +241,10 @@ The resulting output of LCDd is:
 We observe, that we successfuly changed the foreground/background color and window size of the daemon.
 
 \section{lcdproc}
-The lcdproc configuration gets roundtripped by changing the used port from the file default of 13666 to 12345.
-Afterwards the file difference without whitespace get checked.
+The lcdproc client is the main client for LCDproc. It sends the stats of it's host to the connect LCDd server.
+The configuration file used for the evaluation of lcdproc contains has 156 lines, including 58 lines of comment and 46 empty lines.
+The lcdproc configuration gets roundtripped by changing the used port from the default value of 13666 to 12345.
+Afterwards the file difference without whitespace gets checked.
 {\small
 \begin{verbatim}
 kdb set 'user/sw/lcdproc/lcdproc/#0/current/lcdproc/port' '12345'
@@ -259,7 +258,7 @@ diff -w ./lcdproc/lcdproc.toml .config/lcdproc.toml
 The only difference found is the line with the port number, for which we changed the value.
 The rest of the file remained unchanged.
 \\\\
-Then, the lcdproc client gets started without an active LCDd-daemon.
+Then, the lcdproc client gets started without an active LCDd-daemon, expeciting it to not start fully, since it can't connect to the server.
 {\small
 \begin{verbatim}
 lcdproc -f
@@ -271,8 +270,11 @@ Check to see that the server is running and operating normally.
 In the error message, we see that the client tried to connect to port 12345, and not the default 13666.
 
 \section{lcdexec}
-For lcdexec, we created a configuration file containing one menu with two options.
-The menu options execute \texttt{'echo a'} and \texttt{'echo b'}, respectivly, on the machine where lcdexec is running.
+With lcdexec, the LCDd server can execute preconfigured commands on the machine where lcdexec is running.
+We can add menus to the lcdexec configuration, which can contain further menus or the aforementioned commands, which can be any line of shell code.
+For the evaluation, e created a configuration file containing one menu with two options.
+The menu options execute \texttt{'echo a'} and \texttt{'echo b'}, respectively.
+The lcdexec configuration file has 125 lines, including 36 lines of comment and 25 empty lines.
 We first roundtrip the configuration file, by resetting the main menu key (which already contains the now set value).
 Afterwards, the file is checked without whitespaces.
 {\small
@@ -285,8 +287,8 @@ Files ./lcdproc/lcdexec.toml and .config/lcdexec.toml are identical
 }
 We see there are no differences between the original and the roundtripped configuration file.
 \\\\
-In a \acrshort{tmux} (\acrlong{tmux}) session, the LCDd-daemon and lcdexec client get executed simultaneously.
-There we navigate into our configured lcdexec menu and execute the first option to execute \texttt{echo a}.
+In a \acrshort{tmux} (\acrlong{tmux}) session, the LCDd server and lcdexec client get executed simultaneously.
+There, we navigate into our configured lcdexec menu and execute the first option to execute \texttt{echo a}.
 \FloatBarrier
 \begin{figure}[h!]
 	\centering
@@ -296,10 +298,11 @@ There we navigate into our configured lcdexec menu and execute the first option 
 \end{figure}
 \FloatBarrier
 We see both of our configured menus, and, on selecting the first menu option, we also see that \texttt{a} gets printed in the lcdexec window.
-We also see a warning message, that an item id could not be found, which gets printed, when the server sent an unknown menu item id.
+We also see a warning message, that an item id could not be found, which gets printed, when the server has sent an unknown command.
 
 \section{lcdvc}
 The lcdvc client can display a system console on a display which is controlled by LCDd.
+Our configuration file only contains 2 assignments, the rest of the 33 lines consist of comments and empty lines.
 In the created \acrshort{toml} configuration we set the devices to read from to \texttt{/dev/urandom}.
 {\small
 \begin{verbatim}
@@ -315,7 +318,16 @@ diff -ws lcdproc/lcdvc.toml .config/lcdvc.toml
 \end{verbatim}
 }
 We see, that the only file differences are the values we changed by \texttt{kdb set} before.
-
+\\\\
+When we start LCDd and lcdexec in a \acrshort{tmux} session, we see that lcdexec forwards the stream of \texttt{/dev/urandom} to LCDd.
+\FloatBarrier
+\begin{figure}[h!]
+	\centering
+		\includegraphics[width=\linewidth]{lcdvc.png}
+  \caption{LCDd receiving \texttt{/dev/random} from lcdexec}
+\label{fig:lcdvc}
+\end{figure}
+\FloatBarrier
 
 
 \section{Benchmarks}
