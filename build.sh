@@ -6,4 +6,4 @@ make glossary
 make bibliography
 make -B thesis
 make -B thesis
-make clean
+# make clean

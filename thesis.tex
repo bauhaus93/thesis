@@ -14,6 +14,9 @@
 \usepackage{cite}
 \usepackage{hyperref}
 \usepackage{tcolorbox}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage[section]{placeins}
 
 \title{Viability of TOML parsing for configuration}
 \author{Jakob Fischer}
@@ -25,7 +28,8 @@
 \newacronym{ll}{LL}{Left-to-Right, Leftmost derivation}
 \newacronym{lr}{LR}{Left-to-Right, Rightmost derivation}
 \newacronym{toml}{TOML}{Tom's Obvious, Minimal Language}
-\newacronym{flex}{FLEX}{Fast Lexical Analyzer}
+\newacronym{flex}{Flex}{Fast Lexical Analyzer}
+\newacronym{posix}{POSIX}{Portable Operating System Interface}
 
 \newcommand{\onlinesrc}[1]{Accessed #1}
 \newcommand{\gitsrc}[1]{Commit \##1}
@@ -41,19 +45,19 @@ TODO: Abstract
 \chapter{Introduction}
 
 
-\section{\acrshort{toml} (\acrlong{toml})}
-\acrshort{toml} is a configuration file format developed since February, 2013 \cite{tomlcontrib}.
+\section{\acrshort{toml}}
+\acrlong{toml} (\acrshort{toml}) is a configuration file format developed since February, 2013 \cite{tomlcontrib}.
 It claims to be a format, that is easily to read and parse \cite{tomlreadme} and finds use in many different projects \cite{tomlwiki}.
-For instance, it is used with Rusts project manager \textbf{cargo} \cite{cargogit}, as well as Pythons package installer \textbf{pip} \cite{piprefguide}.
+For instance, it is used with Rust's project manager \textbf{cargo} \cite{cargogit}, as well as Python's package installer \textbf{pip} \cite{piprefguide}.
 
 \section{Elektra}
-Elektra is a configuration framework for accessing configuration settings in a global key database \cite{elektramain}.
+Elektra is a configuration framework for accessing configuration settings in a global key database \cite{Elektramain}.
 An application using Elektra can read and write key/value pairs via calls to the Elektra library, making the implementation of an own configuration system obsolete.
 Furthermore, elektrified applications can access configuration settings of other elektrified applications, to provide better application interoperability.
 
-Although Elektra is mainly written in C, there are bindings for other languages like java, python or ruby \cite{elektrabindings}.
+Although Elektra is mainly written in C, there are bindings for other languages like java, python or ruby \cite{Elektrabindings}.
 
-Elektra can also read from and write to different configuration file formats, like JSON, XML or ini \cite{elektrastorage}.
+Elektra can also read from and write to different configuration file formats, like JSON, XML or ini \cite{Elektrastorage}.
 If the need arises, applications can easily switch to a different file format, because configuration access is done with the Elektra API.
 Developers or Administrators no longer need to commit to one file format for configuration.
 
@@ -61,35 +65,38 @@ Support for different languages and file formats is implemented by the use of pl
 With this modularity, Elektra can provide a wide range of functionality, while simultaneously avoiding being a bloated library.
 Developers can compile Elektra with the exact set of needed functionality. If they don't need bindings for java, they can just disable this feature.
 
-\section{lcdproc}
-LCDproc is an open source project for displaying stats like CPU/RAM usage of a system on different kinds of LCD devices \cite{lcdprocmain}\cite{lcdprocgit}.
+\section{LCDproc}
+LCDproc is an open source project for displaying stats like CPU/RAM usage of a system on different kinds of LCD devices \cite{LCDprocmain}\cite{LCDprocgit}.
 It has a client/server architecture, where the clients provide their system stats to the server, which can display them on a LCD device.
 
 \section{Research Question}
-We will test the newly written toml plugin on ElektraInitiative's fork of lcdproc, where lcdproc is currently in the process of using elektra for it's handling of configuration.
-The toml plugin will be used as the storage plugin for the lcdproc configuration.
-We will create a \acrshort{toml} configuration file based lcdproc's main configuration file for evaluation.
+We will test the newly written toml plugin on ElektraInitiative's fork of LCDproc, where LCDproc is currently in the process of using Elektra for it's handling of configuration.
+The toml plugin will be used as the storage plugin for the LCDproc configuration.
+We will create a \acrshort{toml} configuration file based LCDproc's main configuration file for evaluation.
 
-There are two important questions we want to answer for the toml plugin:
+There are three questions we want to answer for the toml plugin:
 \begin{itemize}
-	\item[\textbf{RQ1}] Does the plugin correctly store and load all needed lcdproc configuration?
-	\item[\textbf{RQ2}] Does the plugin put an unreasonable overhead on lcdproc loading times?
+	\item[\textbf{RQ1}] Does the plugin correctly read the LCDproc configuration?
+	\item[\textbf{RQ2}] Does the plugin correctly write the LCDproc configuration without any loss of information?
+	\item[\textbf{RQ3}] Does the plugin put an unreasonable overhead on LCDproc loading times?
 \end{itemize}
-Since the lcdproc fork has an elektra specification which loads missing keys with defaults, we must ensure during the evaluation, that we are really using the values supplied by our configuration file, and not the default ones.
+Ad RQ1 we must ensure, that were are really reading the configuration from our supplied file, and not the default values supplied by the Elektra specification.
+
+Ad RQ2 we also have to check, if comments and newlines - which don't affect the LCDproc execution practically, but are only for the user to read - are preserved.
 
 \chapter{Implementation}
 
-The plugin is implemented in C, using the C99 standard. It requires POSIX for it's capabilities to check regular expressions.
+The plugin is implemented in C, using the C99 standard. It requires \acrshort{posix} for it's capabilities to check regular expressions.
 
 \section{Plugin}
-The toml parser is realized as an elektra storage plugin. The plugin exposes two functions, \textbf{elektraTomlGet} for reading, and \textbf{elektraTomlSet} for writing, as expected of a storage plugin.
+The toml parser is realized as an Elektra storage plugin. The plugin exposes two functions, \textbf{ElektraTomlGet} for reading, and \textbf{ElektraTomlSet} for writing, as expected of a storage plugin.
 
 \section{Tools}
 It uses two external tools for generating a parser for the toml file format: \textbf{\acrshort{flex}} \cite{flexgit} for lexical analysis and \textbf{bison} \cite{bisonmain} for parsing.
 The key generation is done in the bison parser with the use of actions.
 
 In order to generate the appropriate Elektra keys, the parser has access to a driver which contains all needed Elektra logic.
-We oriented on the existing Elektra plugin \textbf{yambi}\cite{elektrayambi} in key generation via driver.
+We oriented on the existing Elektra plugin \textbf{yambi}\cite{Elektrayambi} in key generation via driver.
 The driver contains functions of the style \textbf{driverEnterKey}/\textbf{driverExitTable}, to make it more clear at what point of parsing a certain function shall be invoked.
 
 \section{Grammar}
@@ -105,8 +112,17 @@ However, especially for possibly nested structures, like arrays or inline tables
 
 \chapter{Evaluation}
 
-\section{Setup}
-We clone both of the following repositories in a single directory, our 'working directory'.
+\section{Hardware Setup}
+The evaluation was executed on the following hardware setup:
+\begin{verbatim}
+Processor: Intel i7-4790K @ 4.20 GHz
+RAM: 16 GB (2 x 4GB, 1 x 8GB), DDR-3 @ 1600 MHz 
+HDD: Seagate Desktop ST2000DM001, 2TB, 6 GB/s
+\end{verbatim}
+
+\section{Software Setup}
+
+The following versions of Elektra and LCDproc were used for evaluation:
 \begin{tcolorbox}
 \begin{verbatim}
 Elektra:
@@ -114,17 +130,18 @@ repository: github.com/bauhaus93/libelektra.git
 branch: 'plugin_toml'
 commit: #e75d60f8699d8ea80f0f099364b3b8f03ec4413f
 LCDproc:
-repository: github.com/bauhaus93/libelektra.git
+repository: github.com/bauhaus93/lcdproc.git
 branch: 'toml_test'
 commit: #70bf70135190c270c6a75e0b975f591df323bb65
 \end{verbatim}
 \end{tcolorbox}
 
-After cloning and checking out the two repositories, we build a docker image with the help of a script that comes with the elektra repository:
+
+The evaluation was done within a docker container, which was built as follows.
 \begin{tcolorbox}
 \begin{verbatim}
 cd libelektra
-docker build -t buildelektra-buster \
+docker build -t buildElektra-buster \
     --build-arg JENKINS_USERID=`id -u` \
     --build-arg JENKINS_GROUPID=`id -g` \
     -f scripts/docker/debian/buster/Dockerfile \
@@ -132,8 +149,7 @@ docker build -t buildelektra-buster \
 \end{verbatim}
 \end{tcolorbox}
 
-We extend this image by building another image on top of it. This dockerfile installs flex, which is needed by the toml plugin, sudo for installing elektra and lcdproc, and some other packages for convenience.
-
+We extended this image by building another image on top of it. This dockerfile mainly installs/sets up sudo for installing Elektra and LCDproc.
 Dockerfile:
 \begin{tcolorbox}
 \small
@@ -141,30 +157,11 @@ Dockerfile:
 FROM buildelektra-buster
 
 USER root
-RUN apt-get update && apt-get -y install flex vim sudo tmux
+RUN apt-get update && apt-get -y install sudo vim tmux
 RUN adduser jenkins sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER jenkins
 WORKDIR /home/jenkins
-\end{verbatim}
-\end{tcolorbox}
-
-We execute the following command from the same directory as the Dockerfile to create the image:
-\begin{tcolorbox}
-\small
-\begin{verbatim}
-docker build -t buildelektra-test-toml - < Dockerfile
-\end{verbatim}
-\end{tcolorbox}
-
-Afterwards, we run the newly created image with the following command from our working directory:
-\begin{tcolorbox}
-\small
-\begin{verbatim}
-docker run -it --rm \
-    -v $PWD:/home/jenkins \
-    buildelektra-test-toml \
-    bash
 \end{verbatim}
 \end{tcolorbox}
 
@@ -176,21 +173,104 @@ From our working directory within the container, Elektra and LCDdproc get instal
 \end{verbatim}
 \end{tcolorbox}
 
-With Elektra and LCDproc successfuly installed, we now have all set up for evaluation.
-All evaluation is done within the container environment which we just set up and where we installed elektra and lcdproc.
-
-Since the default configuration LCDd file is very minimal, and most of the configuration is loaded by the specification, we created a LCDd \acrshort{toml} toml file for evaluation purposes.
-It is based on the old default configuration file of LCDd \cite{lcdprocconf}.
+Since the default configuration LCDd file is very minimal, and most of the configuration is loaded by the specification, we created a LCDd \acrshort{toml} file for evaluation purposes.
+It is based on the old default configuration file of LCDd \cite{LCDprocconf}.
 We converted this old configuration from it's ini like format into \acrshort{toml}.
-We also removed all driver configuration settings, which are not referenced in the specification.
-To show the full capability of the parser, the syntax of some lines was changed into a semantically equivalent format.
-The resulting \acrshort{toml} file has over 600 lines, many of them comments.
-It is copied to our configuration directory in \texttt{.config/} by the installation script.
+All driver configuration settings, which are not referenced in the specification \cite{bauhaus93forklcdprocslcddspec}, were removed from it.
+To show the full capability of the parser, the syntax of the following lines was changed into a semantically equivalent format:
+\begin{verbatim}
+[menu]
+menukey = "Escape"
+enterkey = "Enter"
+upkey = "Up"
+downkey = "Down"
+\end{verbatim}
+was changed into an inline table:
+\begin{verbatim}
+menu = { menukey = "Escape", enterkey = "Enter", \
+		 upkey = "Up", downkey = "Down" }
+\end{verbatim}
 
-TODO: print differences with diff? ignore whitespace and case.
+The resulting \acrshort{toml} file has 606 lines including 369 lines of comments and 143 empty lines.
+It contains one \acrshort{toml} table, nested array and inline table.
+It contains multiple \acrshort{toml} table arrays - one for each driver.
 
-The LCDd daemon also starts without errors with this new configuration.
-We can verify, that lcdproc used the curses driver options by checking the color the stats panel, which changed from red (which is the default value) to yellow, as written in our file.
+This file is copied to our configuration directory in \texttt{.config/} by our installation script.
+It is also mounted as configuration file for LCDd by the post-install.sh script, used in the installation script.
+
+We force a full read/write roundtrip of the configuration file, by setting the currently used driver. This driver is already the active driver in the file, but we set it again.
+Afterwards, we check if there are any differences between the original file and the newly written file.
+The executed diff command ignores any differences in whitespace, since whitespace are yet only preserved before comments by the plugin (tabs are normalized to 4 spaces).
+{\small
+\begin{verbatim}
+kdb set '/sw/lcdproc/lcdd/#0/current/server/drivers/#0' '@/curses/#0'
+diff -ws ./lcdproc/LCDd.toml .config/LCDd.toml
+Files ./lcdproc/LCDd.toml and .config/LCDd.toml are identical
+\end{verbatim}
+}
+After one roundtrip, the resulting LCDd.toml is identical to the original file under disregard of whitespace.
+\\\\
+
+\section{LCDd}
+We start and stop the LCDd daemon once, change some parameters of the curses driver, and start the daemon again.
+{\small
+\begin{verbatim}
+LCDd -f
+kdb set '/sw/lcdproc/lcdd/#0/current/curses/#0/foreground' 'yellow'
+kdb set '/sw/lcdproc/lcdd/#0/current/curses/#0/background' 'blue'
+kdb set '/sw/lcdproc/lcdd/#0/current/curses/#0/backlight' 'blue'
+kdb set '/sw/lcdproc/lcdd/#0/current/curses/#0/size' '100x40'
+LCDd -f
+\end{verbatim}
+}
+
+The resulting output of LCDd is:
+\FloatBarrier
+\begin{figure}[h!]
+	\centering
+	\begin{subfigure}[b]{0.4\linewidth}
+		\includegraphics[width=\linewidth]{lcdd_vanilla.png}
+		\caption{Before parameter change}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.4\linewidth}
+		\includegraphics[width=\linewidth]{lcdd_changed.png}
+		\caption{After parameter change}
+	\end{subfigure}
+  \caption{LCDd output}
+\label{fig:lcdd}
+\end{figure}
+\FloatBarrier
+We observe, that we successfuly changed the foreground/background color and window size of the daemon.
+
+\section{lcdproc}
+The lcdproc configuration gets roundtripped by changing the used port from the file default of 13666 to 12345.
+Afterwards the file difference without whitespace get checked.
+{\small
+\begin{verbatim}
+kdb set 'user/sw/lcdproc/lcdproc/#0/current/lcdproc/port' '12345'
+diff -w ./lcdproc/lcdproc.toml .config/lcdproc.toml
+9c9
+< port=13666
+---
+> port = 12345
+\end{verbatim}
+}
+The only difference found is the line with the port number, for which we changed the value.
+The rest of the file remained unchanged.
+\\\\
+Then, the lcdproc client gets started without an active LCDd-daemon.
+{\small
+\begin{verbatim}
+lcdproc -f
+sock_connect: connect failed
+Error connecting to LCD server localhost on port 12345.
+Check to see that the server is running and operating normally.
+\end{verbatim}
+}
+In the error message, we see that the client tried to connect to port 12345, and not the default 13666.
+
+
+
 
 \section{Benchmarks}
 
