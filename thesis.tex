@@ -30,6 +30,7 @@
 \newacronym{toml}{TOML}{Tom's Obvious, Minimal Language}
 \newacronym{flex}{Flex}{Fast Lexical Analyzer}
 \newacronym{posix}{POSIX}{Portable Operating System Interface}
+\newacronym{tmux}{tmux}{Terminal Multiplexer}
 
 \newcommand{\onlinesrc}[1]{Accessed #1}
 \newcommand{\gitsrc}[1]{Commit \##1}
@@ -269,6 +270,51 @@ Check to see that the server is running and operating normally.
 }
 In the error message, we see that the client tried to connect to port 12345, and not the default 13666.
 
+\section{lcdexec}
+For lcdexec, we created a configuration file containing one menu with two options.
+The menu options execute \texttt{'echo a'} and \texttt{'echo b'}, respectivly, on the machine where lcdexec is running.
+We first roundtrip the configuration file, by resetting the main menu key (which already contains the now set value).
+Afterwards, the file is checked without whitespaces.
+{\small
+\begin{verbatim}
+kdb set 'user/sw/lcdproc/lcdexec/#0/current/menu/main' \
+	'@/menu/menu/#0'
+diff -ws ./lcdproc/lcdexec.toml .config/lcdexec.toml 
+Files ./lcdproc/lcdexec.toml and .config/lcdexec.toml are identical
+\end{verbatim}
+}
+We see there are no differences between the original and the roundtripped configuration file.
+\\\\
+In a \acrshort{tmux} (\acrlong{tmux}) session, the LCDd-daemon and lcdexec client get executed simultaneously.
+There we navigate into our configured lcdexec menu and execute the first option to execute \texttt{echo a}.
+\FloatBarrier
+\begin{figure}[h!]
+	\centering
+		\includegraphics[width=\linewidth]{lcdexec_menu.png}
+  \caption{Menu navigation in LCDd while lcdexec is connected}
+\label{fig:lcdexec}
+\end{figure}
+\FloatBarrier
+We see both of our configured menus, and, on selecting the first menu option, we also see that \texttt{a} gets printed in the lcdexec window.
+We also see a warning message, that an item id could not be found, which gets printed, when the server sent an unknown menu item id.
+
+\section{lcdvc}
+The lcdvc client can display a system console on a display which is controlled by LCDd.
+In the created \acrshort{toml} configuration we set the devices to read from to \texttt{/dev/urandom}.
+{\small
+\begin{verbatim}
+kdb set user/sw/lcdproc/lcdvc/#0/current/lcdvc/vcsdevice /dev/urandom
+kdb set user/sw/lcdproc/lcdvc/#0/current/lcdvc/vcsadevice /dev/urandom
+diff -ws lcdproc/lcdvc.toml .config/lcdvc.toml
+31,32c31,32
+< vcsdevice="/dev/null"
+< vcsadevice="/dev/null"
+---
+> vcsdevice = "/dev/urandom"
+> vcsadevice = "/dev/urandom"
+\end{verbatim}
+}
+We see, that the only file differences are the values we changed by \texttt{kdb set} before.
 
 
 
