@@ -12,4 +12,6 @@
 *.pdf
 *.fls
 *.fdb_latexmk
+*.idx
+*.toc
 .vscode/
