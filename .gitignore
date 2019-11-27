@@ -14,4 +14,7 @@
 *.fdb_latexmk
 *.idx
 *.toc
+*.lof
+*.lot
+*.pdf
 .vscode/

@@ -24,7 +24,7 @@
 \usepackage[section]{placeins}
 
 \newcommand{\authorname}{Jakob Fischer} % The author name without titles.
-\newcommand{\thesistitle}{Viability of TOML parsing for configuration} % The title of the thesis. The English version should be used, if it exists. 
+\newcommand{\thesistitle}{Case Study on an Elektra storage plugin} % The title of the thesis. The English version should be used, if it exists. 
 
 \hypersetup{
 	pdfpagelayout   = TwoPageRight,           % How the document is shown in PDF viewers (optional).
@@ -48,10 +48,10 @@
 %  {title before name}{name}{title after name}{gender}
 %  where both titles are optional (i.e. can be given as empty brackets {}).
 \setauthor{}{\authorname}{}{male}
-\setadvisor{Pretitle}{Markus Raab}{Posttitle}{male}
+\setadvisor{Dr.techn. Dipl.-Ing.}{Markus Raab}{}{male}
 
 % For bachelor and master theses:
-\setfirstassistant{Pretitle}{Forename Surname}{Posttitle}{male}
+% \setfirstassistant{Pretitle}{Forename Surname}{Posttitle}{male}
 
 % Required data.
 \setregnumber{01427178}
@@ -65,7 +65,7 @@
 % For bachelor and master:
 \setcurriculum{Software and Information Engineering}{Software und Information Engineering} % Sets the English and German name of the curriculum.
 
-\title{Viability of TOML parsing for configuration}
+\title{Case Study on an Elektra storage plugin }
 \author{Jakob Fischer}
 
 \bibliographystyle{unsrt}
@@ -165,7 +165,7 @@ The key generation is done in the bison parser with the use of actions.
 
 In order to generate the appropriate Elektra keys, the parser has access to a driver, which contains all needed Elektra logic.
 We adapted this driver oriented approach from the \textbf{yambi}\cite{Elektrayambi} plugin.
-The driver contains functions int the style of \texttt{driverEnterKey}/\texttt{driverExitTable}, to make clarify, on which point of parsing a certain function shall be invoked.
+The driver contains functions int the style of \\ \texttt{driverEnterKey}/\texttt{driverExitTable}, to clarify, on which point of parsing a certain function shall be invoked.
 
 \section{Grammar}
 Since bison generates \acrshort{lr} (\acrlong{lr}) parsers, grammar rules should be left-recursive.
@@ -459,21 +459,55 @@ print(f"runs = {RUNS}\navg = {avg}ms\n
 \end{table}
 \FloatBarrier
 
+\section{Discussion}
+In this evaluation, we tested not only basic key/value assignments, but also \acrshort{toml} features like tables and table arrays, and even nested arrays, which all could be read and restored correctly.
+We could observe that in all four programs of LCDproc, we would get identical files after reading/writing them when ignoring whitespace.
+This also means, that no comments got lost or misordered during roundtripping a file.
+Only during lcdexec evaluation we got a warning for a missing menu id, but since our configured command got executed anyway, we assumed success. This may be no error attributable to the written plugin.
+\\\\
+The benchmarks showed, that the reading speed of the plugin can match with two other existing Elektra storage plugins, with the ni plugin being the current default for LCDprocs configuration storage.
+
+\chapter{Future Work}
+One thing, that the \acrshort{toml} plugin currently cannot store is Elektra metadata. Other plugins, like \texttt{yamlcpp} and \texttt{ni} already support this feature.
+The \texttt{yamlcpp} plugin does this by assigning a special meaning to the value '!elektra/meta', which indicates that the key must be handeled in a different matter \cite{elektrayamlcpp}.
+For the \acrshort{toml} plugin we could maybe store metadata info in the comments before key with metadata, also by introducing a special sequence which indicate the presence of metadata.
+
+As an example, a key \texttt{'a'} with a type metakey of value \texttt{unsigned\_short} could look like:
+\begin{Verbatim}[frame=single, fontsize=\small]
+#!ELEKTRA_META! type=unsigned_short
+a = 3
+\end{Verbatim}
+When reading a file with this special tagged comments, we could differentiate them already at the stage of lexing from normal comments.
+However, there is the question of how this would affect the readability of a \acrshort{toml} file, when it contains many many metadata.
+
+Another thing that could be improved in the future, would be a more complete preservation of whitespace characters.
+Especially whitespace used as indentation in front of keys/tables/table arrays/array elements would be very nice, since they improve human readability of the file.
+We actually tried to preserve this kind of whitespace, but turned it back, since the grammar got too error prone.
+When implemented properly, two points need to be taken care of:
+On the one side, the bison grammar should emit no reduce/reduce or shift/reduce ambiguities.
+On the other side, a valid \acrshort{toml} file should not be invalid because a valid spot for whitespace got overlooked in the grammar.
+When we first tried to implement this feature, we struggled with these two problems, which seemed to amplify each other.
+If we would eliminate more grammar ambiguities, we would get more files parsed as invalid and vice-versa.
+
 \chapter{Related Work}
 
 \chapter{Conclusion}
-In this paper, we wanted to check, if our written \acrshort{toml} plugin would read/h:wq
-In our evaluation, we tested not only basic key/value assignments, but also \acrshort{toml} features like tables and table arrays, and even nested arrays, which all could be restored correctly.
-We could observe that in all four programs of LCDproc, we would get identical files after reading/writing them when ignoring whitespace.
-This also means, that no comments got lost or misordered during roundtripping a file.
-Therefore we conclude, that our \acrshort{toml} plugin can load and write LCDproc's configuration without problems.
-Only during lcdexec evaluation we got a warning for a missing menu id, but since our configured command got executed anyway, we assumed success. This may be no error attributable to our plugin.
+In this paper, we wanted to verify, if our written \acrshort{toml} plugin reads and writes the LCDproc configuration correctly.
+We also wanted to survey, if the plugin puts an unreasonable overhead on the LCDproc startup time.
+
+In our evaluation, we saw that the plugin could handle the configuration needed by LCDproc.
+It would do so in both reading and writing direction.
+No information got lost when roundtripping different configuration files of LCDproc.
 \\\\
-In the benchmarks, we see that the \acrshort{toml} plugin doesn't 
+Furthermore, the benchmarks showed that it has a decent reading speed of the LCDd configuration file, compared to two other storage plugins.
 
 \backmatter
 
-\printindex
+\listoffigures
+
+\listoftables
+
+% \printindex
 
 \printglossary[type=\acronymtype]
 
