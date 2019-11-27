@@ -165,18 +165,35 @@ The key generation is done in the bison parser with the use of actions.
 
 In order to generate the appropriate Elektra keys, the parser has access to a driver, which contains all needed Elektra logic.
 We adapted this driver oriented approach from the \textbf{yambi}\cite{Elektrayambi} plugin.
-The driver contains functions of the style \texttt{driverEnterKey}/\texttt{driverExitTable}, to make it more clear at what point of parsing a certain function shall be invoked.
+The driver contains functions int the style of \texttt{driverEnterKey}/\texttt{driverExitTable}, to make clarify, on which point of parsing a certain function shall be invoked.
 
 \section{Grammar}
-Since bison generates \acrshort{lr} (\acrlong{lr}) parsers, grammar rules should be be left-recursive.
-Otherwise, we could run out of stack memory, if recursing too deep with a right-recursive rule.
+Since bison generates \acrshort{lr} (\acrlong{lr}) parsers, grammar rules should be left-recursive.
+Otherwise, it would be possible to run out of stack memory, if recursing too deep with a right-recursive rule.
 The created parser only contains left-recursive rules.
 TODO: Maybe explain why/examples/sources
 
-The parser makes use of so-called midrule-actions, which are parser actions that are not at the end of a grammar rule.
+The parser makes use of so-called midrule-actions, which are parser actions that are not placed at the end of a grammar rule.
 This can affect the resulting grammar, since after executing a mid-rule action, the parser has to commit to the chosen parse branch \cite{bisonmidruleconflicts}.
 We tried to minimize the usage of midrule-actions, to make the grammar as independent of actions as possible.
-However, especially for possibly nested structures, like arrays or inline tables, they were unavoidable.
+However, especially for possibly nested structures like arrays or inline tables they were unavoidable.
+
+
+\chapter{Methodology}
+In this evaluation, we will check four parts of LCDproc: The server daemon \texttt{LCDd} and three clients, namely \texttt{lcdproc}, \texttt{lcdexec}, \texttt{lcdvc}.
+To valid the way, the \acrshort{toml} plugin reads/writes configuration, we will force a roundtrip of the file by changing a value within that file with the Elektra command \texttt{kdb set}.
+When we call \texttt{kdb set}, the configuration first gets read from the file, the value to set is updated, and then the keys are written back into the file.
+After we roundtripped a file, we compare it with its original file by the help of the \texttt{diff} command.
+This \texttt{diff} command is always invoked with the \texttt{-w} switch, so that whitespace differences get ignored.
+The \acrshort{toml} plugin currently preserves whitespace only before comments (tabs get converted into four spaces).
+
+The \acrshort{toml} files copied during installation either differ from the default configuration loaded by the specification, or we will alter the keys of the file by a call of \texttt{kdb set} before we execute the program.
+During execution, we check if the program starts without any errors concerning the reading of the \acrshort{toml} file.
+We also check, if we can observe the expected difference from the default configuration, to ensure that we really are using the values from our configuration file.
+
+In order to check, if the plugin imposes an unreasonable overhead in the loading times of LCDproc, we conducted benchmarks.
+There, we compared the loading time of LCDproc while using the existing storage plugins yamlcpp, ni and our \acrshort{toml} for loading configuration.
+
 
 \chapter{Evaluation}
 
@@ -214,7 +231,6 @@ docker build -t buildElektra-buster \
 \end{Verbatim}
 
 We extended this image by building another image on top of it. This dockerfile mainly installs/sets up sudo for installing Elektra and LCDproc.
-Dockerfile:
 \begin{Verbatim}[frame=single]
 FROM buildelektra-buster
 USER root
@@ -225,39 +241,25 @@ USER jenkins
 WORKDIR /home/jenkins
 \end{Verbatim}
 
-Finally, a setup script get invoked. It installs Elektra and LCDdproc, and then copies LCDproc \acrshort{toml} files to the \texttt{./config} directory.
+As a last step, we invoke a setup script. It installs Elektra and LCDdproc, and then copies LCDproc \acrshort{toml} files to the \texttt{./config} directory.
 \begin{Verbatim}[frame=single]
 ./lcdproc/toml_setup_install.sh
 \end{Verbatim}
-This script also invokes the \texttt{post-install.sh} script, which will mount the configuration scripts at the point where expected by LCDproc.
-
-\section{Methodology}
-In this evaluation, we will check four parts of LCDproc: The server daemon \texttt{LCDd} and three clients, namely \texttt{lcdproc}, \texttt{lcdexec}, \texttt{lcdvc}.
-To check, if the \acrshort{toml} plugin correctly reads/writes configuration, we will force a roundtrip of the file by changing a value within that file with the help of the Elektra command \texttt{kdb set}.
-When we call \texttt{kdb set}, the configuration first gets read from the file, the value to set is updated, and then the keys are written back into the file.
-After we roundtripped a file, we compare it with it's original file by the help of the \texttt{diff} command.
-The \texttt{diff} command is always invoked with the \texttt{-w} switch, so that whitespace differences are ignored.
-The \acrshort{toml} plugin currently preserves whitespace only before comments (tabs get converted into four spaces).
-
-The \acrshort{toml} files copied during installation either differ from the default configuration loaded by the specification, or we will alter the keys of the file by a call of \texttt{kdb set} before we execute the program.
-During execution, we check if the program starts without any errors concerning the reading of the \acrshort{toml} file.
-We also check, if we can observe the expected difference from the default configuration, to ensure that we really are using the values from our configuration file.
-
-In order to check, if the plugin imposes an unreasonable overhead in the loading times of LCDproc, we conducted benchmarks.
-There, we compared the loading time of LCDproc while using the existing storage plugins yamlcpp, ni and our \acrshort{toml} for loading configuration.
+This script also invokes the \texttt{post-install.sh} script, which will mount the configuration scripts at the point expected by LCDproc.
 
 \section{LCDd}
-The LCDd server displays the stats sent to it be the client applications. Normally we would display that stats on a \acrshort{lcd} device, but for our purposes, we configured it to use curses instead.
+The LCDd server displays stats sent by the client applications to \acrshort{lcd} displays.
+For our purposes, we configured it to display it to curses.
 Since the default configuration LCDd file is very minimal, and most of the configuration is loaded by the specification, we created a LCDd \acrshort{toml} file for evaluation purposes.
 It is based on the old default configuration file of LCDd \cite{LCDprocconf}.
-We converted this old configuration from it's ini like format into \acrshort{toml}.
-All driver configuration settings, which are not referenced in the specification \cite{bauhausforklcdprocslcddspec}, were removed from it.
+We converted this old configuration from it's ini-like format into \acrshort{toml}.
+All driver configuration settings, which are not referenced in the specification \cite{bauhausforklcdprocslcddspec}, were removed.
 
 The resulting \acrshort{toml} file has 606 lines including 369 lines of comments and 143 empty lines.
-It contains one \acrshort{toml} table and a nested array.
-It contains multiple \acrshort{toml} table arrays - one for each driver.
+It contains a table and a nested array.
+It also contains multiple \acrshort{toml} table arrays - one for each LCDproc driver.
 
-We force a full read/write roundtrip of the configuration file, by setting the currently used driver. This driver is already the active driver in the file, but we just set it again for the roundtrip.
+We force a full read/write roundtrip of the configuration file by setting the currently used driver. This driver is already the active one in the file, but we just set it again for the roundtrip.
 Afterwards, we check if there are any differences between the original file and the newly written file.
 
 \begin{Verbatim}[frame=single, fontsize=\small]
@@ -297,7 +299,7 @@ The resulting output of LCDd is:
 We observe, that we successfuly changed the foreground/background color and window size of the daemon.
 
 \section{lcdproc}
-The lcdproc client is the main client for LCDproc. It sends the stats of it's host to the connect LCDd server.
+The lcdproc client is the main client for LCDproc. It sends the stats of it's host to the connected LCDd server.
 The configuration file used for the evaluation of lcdproc contains has 156 lines, including 58 lines of comment and 46 empty lines.
 The lcdproc configuration gets roundtripped by changing the used port from the default value of 13666 to 12345.
 Afterwards the file difference without whitespace gets checked.
@@ -313,8 +315,7 @@ diff -w ./lcdproc/lcdproc.toml .config/lcdproc.toml
 The only difference found is the line with the port number, for which we changed the value.
 The rest of the file remained unchanged.
 \\\\
-Then, the lcdproc client gets started without an active LCDd-daemon, expeciting it to not start fully, since it can't connect to the server.
-
+Then, the lcdproc client gets started without an active LCDd-daemon and is not expected to start completely, since it cannot connect to the server.
 \begin{Verbatim}[frame=single, fontsize=\small]
 lcdproc -f
 sock_connect: connect failed
@@ -326,10 +327,10 @@ In the error message, we see that the client tried to connect to port 12345, and
 \section{lcdexec}
 With lcdexec, the LCDd server can execute preconfigured commands on the machine where lcdexec is running.
 We can add menus to the lcdexec configuration, which can contain further menus or the aforementioned commands, which can be any line of shell code.
-For the evaluation, e created a configuration file containing one menu with two options.
+For the evaluation, we created a configuration file containing one menu with two options.
 The menu options execute \texttt{'echo a'} and \texttt{'echo b'}, respectively.
 The lcdexec configuration file has 125 lines, including 36 lines of comment and 25 empty lines.
-We first roundtrip the configuration file, by resetting the main menu key (which already contains the now set value).
+We first roundtrip the configuration file by setting the main menu key (which already contains the now set value).
 Afterwards, the file is checked without whitespaces.
 
 \begin{Verbatim}[frame=single, fontsize=\small]
@@ -338,10 +339,10 @@ kdb set 'user/sw/lcdproc/lcdexec/#0/current/menu/main' \
 diff -ws ./lcdproc/lcdexec.toml .config/lcdexec.toml 
 Files ./lcdproc/lcdexec.toml and .config/lcdexec.toml are identical
 \end{Verbatim}
-We see there are no differences between the original and the roundtripped configuration file.
+We see, there are no differences between the original and the roundtripped configuration file.
 \\\\
 In a \acrshort{tmux} (\acrlong{tmux}) session, LCDd and lcdexec get executed simultaneously.
-In LCDd, we navigate into our configured lcdexec menu and execute the first option to execute \texttt{echo a}.
+In LCDd, we navigate into our configured lcdexec menu and execute the first option, which echoes the letter \texttt{a}.
 \FloatBarrier
 \begin{figure}[!ht]
 	\centering
@@ -355,7 +356,7 @@ We also see a warning message, that an item id could not be found, which gets pr
 
 \section{lcdvc}
 The lcdvc client can display a system console on a display which is controlled by LCDd.
-Our configuration file only contains 2 assignments, the rest of the 33 lines consist of comments and empty lines.
+Our configuration file only contains two assignments, the rest of the 33 lines consist of comments and empty lines.
 In the created \acrshort{toml} configuration we set the devices to read from to \texttt{/dev/urandom}.
 \begin{Verbatim}[frame=single, fontsize=\small]
 kdb set user/sw/lcdproc/lcdvc/#0/current/lcdvc/vcsdevice \
@@ -463,7 +464,7 @@ print(f"runs = {RUNS}\navg = {avg}ms\n
 \chapter{Conclusion}
 In this paper, we wanted to check, if our written \acrshort{toml} plugin would read/h:wq
 In our evaluation, we tested not only basic key/value assignments, but also \acrshort{toml} features like tables and table arrays, and even nested arrays, which all could be restored correctly.
-We could observe, that in all four programs of LCDproc, we would get identical files after read/writing them, when ignoring whitespace.
+We could observe that in all four programs of LCDproc, we would get identical files after reading/writing them when ignoring whitespace.
 This also means, that no comments got lost or misordered during roundtripping a file.
 Therefore we conclude, that our \acrshort{toml} plugin can load and write LCDproc's configuration without problems.
 Only during lcdexec evaluation we got a warning for a missing menu id, but since our configured command got executed anyway, we assumed success. This may be no error attributable to our plugin.
