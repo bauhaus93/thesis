@@ -71,7 +71,7 @@
 \bibliographystyle{unsrt}
 
 \newacronym{ll}{LL}{Left-to-Right, Leftmost derivation}
-\newacronym{lr}{LR}{Left-to-Right, Rightmost derivation}
+\newacronym{lr}{LR}{Left-to-Right, Rightmost derivation in reverse}
 \newacronym{toml}{TOML}{Tom's Obvious, Minimal Language}
 \newacronym{yaml}{YAML}{YAML Ain't Markup Language}
 \newacronym{ini}{INI}{Initalization}
@@ -169,15 +169,14 @@ The driver contains functions int the style of \\ \texttt{driverEnterKey}/\textt
 
 \section{Grammar}
 Since bison generates \acrshort{lr} (\acrlong{lr}) parsers, grammar rules should be left-recursive.
-Otherwise, it would be possible to run out of stack memory, if recursing too deep with a right-recursive rule.
-The created parser only contains left-recursive rules.
-TODO: Maybe explain why/examples/sources
+Otherwise, when using right-recursive rules, the parser would first need to shift the whole recursive expression onto the stack before it can start reducing it.
+The parser could run out of stack space, if it must parse right-recursive rules too deep, as it may happen when parsing a huge array.
+Therefore, the written parser only contains left-recursive rules.
 
 The parser makes use of so-called midrule-actions, which are parser actions that are not placed at the end of a grammar rule.
 This can affect the resulting grammar, since after executing a mid-rule action, the parser has to commit to the chosen parse branch \cite{bisonmidruleconflicts}.
 We tried to minimize the usage of midrule-actions, to make the grammar as independent of actions as possible.
 However, especially for possibly nested structures like arrays or inline tables they were unavoidable.
-
 
 \chapter{Methodology}
 In this evaluation, we will check four parts of LCDproc: The server daemon \texttt{LCDd} and three clients, namely \texttt{lcdproc}, \texttt{lcdexec}, \texttt{lcdvc}.
@@ -426,6 +425,7 @@ The \texttt{directoryvalue} plugin would be needed if we wanted to write non-lea
 The \texttt{base64} plugin would be needed if we had to handle binary key/values.
 For reading the configuration files, neither of those functionalities are need.
 \\\\
+For benchmarking purposes, we modified the LCDd main function, to not execute it's mainloop after initialization, but instead exit the application.
 We benchmarked the three plugins by executing them repeatedly within a python script:
 \begin{Verbatim}[frame=single, fontsize=\small]
 RUNS = 100
@@ -491,13 +491,23 @@ If we would eliminate more grammar ambiguities, we would get more files parsed a
 
 \chapter{Related Work}
 
+In his master's thesis, Markus Raab laid the groundwork for Elektras plugin based structure \cite{raabmaster}.
+He also describes the problems that a storage plugin has to solve, like preserving the order of the data in the file or avoiding any loss of information between roundtrips of a file.
+
+A general overview on how to create a parser with both flex and bison can be found in the book written by John Levine \cite{levineflexbison}.
+There he also elaborates on which kinds of conflicts can occur when writing a parser with bison and how to resolve them.
+He also writes about how to emit useful error messages from within the lexer/parser.
+
+A more theoretical background on how formal languages could be parsed can be found in Stefano Reghizzi's book on formal languages \cite{reghizziformallanguages}.
+
+
 \chapter{Conclusion}
 In this paper, we wanted to verify, if our written \acrshort{toml} plugin reads and writes the LCDproc configuration correctly.
 We also wanted to survey, if the plugin puts an unreasonable overhead on the LCDproc startup time.
 
 In our evaluation, we saw that the plugin could handle the configuration needed by LCDproc.
 It would do so in both reading and writing direction.
-No information got lost when roundtripping different configuration files of LCDproc.
+No information got lost when reading / writing different configuration files of LCDproc.
 \\\\
 Furthermore, the benchmarks showed that it has a decent reading speed of the LCDd configuration file, compared to two other storage plugins.
 
