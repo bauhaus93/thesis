@@ -80,6 +80,7 @@
 \newacronym{tmux}{tmux}{Terminal Multiplexer}
 \newacronym{lcd}{LCD}{Liquid Crystal Display}
 \newacronym{api}{API}{Application Programming Interface}
+\newacronym{floss}{FLOSS}{Free/Libre/Open Source Software}
 
 \newcommand{\onlinesrc}[1]{Accessed #1}
 \newcommand{\gitsrc}[1]{Commit \##1}
@@ -91,16 +92,22 @@
 \addtitlepage{english}
 \addstatementpage
 
-\begin{acknowledgements*}
-\end{acknowledgements*}
+% \begin{acknowledgements*}
+% \end{acknowledgements*}
 
-\begin{kurzfassung}
-\todo{KURZFASSUNG HIER}
-\end{kurzfassung}
+% \begin{kurzfassung}
+% \todo{KURZFASSUNG HIER}
+% \end{kurzfassung}
 
 
 \begin{abstract}
-\todo{Abstract}
+Elektra is a library for handling configuration data, which also can mount external configuration files into it's system with the help of storage plugins.
+These storage plugin convert the file specific format into Elektra's format.
+As part of this thesis, we wrote such a storage plugin, for enabling the usage of \acrshort{toml} configuration files within Elektra.
+We evaluated the written plugin on the \acrshort{floss} project LCDproc, where we checked, if the plugin correctly reads and writes the configuration.
+Additionally, we compared the reading speed of our plugin with two other existing storage plugins within LCDproc.
+The newly written plugin could read and write \acrshort{toml} configuration without any loss of information.
+It's reading speed of \acrshort{toml} files was as good as the two other plugins, we matched it against.
 \end{abstract}
 
 \selectlanguage{english}
@@ -211,11 +218,11 @@ The following versions of Elektra and LCDproc were used for evaluation:
 Elektra:
 repository: github.com/bauhaus93/libelektra.git
 branch: 'plugin_toml'
-commit: #e75d60f8699d8ea80f0f099364b3b8f03ec4413f
+commit: #6de556aea56f556c4bdd208394b98974565cb1e9
 LCDproc:
 repository: github.com/bauhaus93/lcdproc.git
 branch: 'toml_test'
-commit: #70bf70135190c270c6a75e0b975f591df323bb65
+commit: #0660eed82246b71b93b7d2e485b5620fa404b010
 \end{Verbatim}
 
 
@@ -384,7 +391,7 @@ When we start LCDd and lcdexec in a \acrshort{tmux} session, we see that lcdexec
 
 \section{Benchmarks}
 
-\subsection{Used versions}
+\subsection{Additional Setup}
 For Elektra, we used our fork of Elektra \cite{bauhausforkelektra}.
 For LCDproc, we used our fork of Elektra's fork of LCDproc \cite{bauhausforklcdproc}.
 \subsubsection{\acrshort{toml}}
@@ -424,8 +431,8 @@ The disabled plugins were the \texttt{directoryvalue} and the \texttt{base64} pl
 The \texttt{directoryvalue} plugin would be needed if we wanted to write non-leaf keys into the file (and subsequently, convert them back on reading).
 The \texttt{base64} plugin would be needed if we had to handle binary key/values.
 For reading the configuration files, neither of those functionalities are need.
-\\\\
-For benchmarking purposes, we modified the LCDd main function, to not execute it's mainloop after initialization, but instead exit the application.
+For benchmarking purposes, we also modified the LCDd main function, to not execute it's mainloop after initialization, but instead exit the application.
+\subsection{Execution}
 We benchmarked the three plugins by executing them repeatedly within a python script:
 \begin{Verbatim}[frame=single, fontsize=\small]
 RUNS = 100
@@ -441,7 +448,7 @@ print(f"runs = {RUNS}\navg = {avg}ms\n
     median = {median} ms\nmin = {min(times)} ms\n
     max = {max(times)} ms")
 \end{Verbatim}
-
+\subsection{Results}
 \FloatBarrier
 \begin{table}[!ht]
 	\centering
